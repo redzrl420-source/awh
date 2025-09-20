@@ -316,7 +316,7 @@ end
 -- Periodic update for distance sorting (every 0.5 seconds)
 spawn(function()
     while true do
-        wait(0.5)
+        wait(0.1)
         updatePlayerList()
     end
 end)
