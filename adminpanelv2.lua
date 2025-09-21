@@ -1,12 +1,31 @@
+wait(2) -- Initial delay for game to load
+
+print("Script started")
 local Players = game:GetService('Players')
+print("Players service loaded")
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
+print("ReplicatedStorage loaded")
 local LocalPlayer = Players.LocalPlayer
+print("LocalPlayer: ", LocalPlayer)
 local UserInputService = game:GetService('UserInputService')
 local RunService = game:GetService('RunService')
 
--- Wait for the AdminPanelService remote events
-local Net = require(ReplicatedStorage.Packages.Net)
+-- Wait for ReplicatedStorage.Packages
+local success, result = pcall(function()
+    return ReplicatedStorage:WaitForChild('Packages', 5)
+end)
+if not success or not result then
+    warn("Failed to find ReplicatedStorage.Packages")
+    return
+end
+
+-- Wait for the Net module and RemoteEvent
+local Net = require(ReplicatedStorage.Packages:WaitForChild('Net', 5))
 local ExecuteCommandRemote = Net:RemoteEvent('AdminPanelService/ExecuteCommand')
+if not ExecuteCommandRemote then
+    warn("Failed to find AdminPanelService/ExecuteCommand RemoteEvent")
+    return
+end
 
 -- List of commands to execute
 local commands = {
@@ -20,14 +39,14 @@ local commands = {
     'rocket',
 }
 
--- Ensure LocalPlayer is ready
-repeat wait() until LocalPlayer and LocalPlayer.Parent -- Wait until LocalPlayer is valid
-wait(1) -- Additional 1-second delay to ensure everything is loaded
-
 -- Create GUI
 local ScreenGui = Instance.new('ScreenGui')
-ScreenGui.Parent = LocalPlayer:WaitForChild('PlayerGui')
 ScreenGui.Name = 'PlayerTrackerGui'
+ScreenGui.Parent = LocalPlayer:WaitForChild('PlayerGui', 5)
+if not ScreenGui.Parent then
+    warn("Failed to parent ScreenGui to PlayerGui")
+    return
+end
 
 local Frame = Instance.new('Frame')
 Frame.Size = UDim2.new(0, 250, 0, 40) -- Fixed size for header
@@ -99,10 +118,20 @@ local function executeCommands(player, specificCommand)
     debounce = true
     if player and player.Parent then
         if specificCommand then
-            ExecuteCommandRemote:FireServer(player, specificCommand)
+            local success, err = pcall(function()
+                ExecuteCommandRemote:FireServer(player, specificCommand)
+            end)
+            if not success then
+                warn("Failed to execute command " .. specificCommand .. ": " .. err)
+            end
         else
             for _, command in ipairs(commands) do
-                ExecuteCommandRemote:FireServer(player, command)
+                local success, err = pcall(function()
+                    ExecuteCommandRemote:FireServer(player, command)
+                end)
+                if not success then
+                    warn("Failed to execute command " .. command .. ": " .. err)
+                end
             end
         end
     else
@@ -369,6 +398,8 @@ end
 
 -- Periodic update for distance sorting (every 0.5 seconds)
 spawn(function()
+    LocalPlayer:WaitForChild('Character', 10)
+    print("Starting update loop")
     while true do
         wait(0.5)
         updatePlayerList()
