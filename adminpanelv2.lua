@@ -20,6 +20,10 @@ local commands = {
     'rocket',
 }
 
+-- Ensure LocalPlayer is ready
+repeat wait() until LocalPlayer and LocalPlayer.Parent -- Wait until LocalPlayer is valid
+wait(1) -- Additional 1-second delay to ensure everything is loaded
+
 -- Create GUI
 local ScreenGui = Instance.new('ScreenGui')
 ScreenGui.Parent = LocalPlayer:WaitForChild('PlayerGui')
